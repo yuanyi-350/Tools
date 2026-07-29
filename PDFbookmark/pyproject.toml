@@ -1,0 +1,15 @@
+[project]
+name = "pdfbookmark"
+version = "0.1.0"
+description = "PDF bookmark extraction and injection, with LLM-powered TOC formatting"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "openai>=2.24.0",
+    "pikepdf>=10.3.0",
+]
+
+[project.scripts]
+pdfbookmark = "PDFbookmark:main"
+clear-toc = "clearTOC:main"
+llm-toc = "LLM_TOC:main"
