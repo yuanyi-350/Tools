@@ -150,7 +150,10 @@ $ rg -B 5 "PAT" # 只打印上面 5 行, --before-context
 $ rg -A 5 "PAT" # 只打印下面 5 行, --after-context
 ```
 
+`rg` 默认把搜索内容当作正则表达式。`-F` (`--fixed-strings`) 表示按普通字符串匹配，不解释其中的 `"`, `.`, `[`, `*` 等字符。
+
 ```bash
+$ rg -F '.lean' data.log # 搜索字面量 ".lean", 而非 regex 匹配
 $ rg "-t" data.log # 出现报错 "rg: ripgrep requires at least one pattern to execute a search"
 $ rg -- "-t" data.log # -- 表示后面的内容都不要再当成选项.
 ```
@@ -161,6 +164,23 @@ $ rg -- "-t" data.log # -- 表示后面的内容都不要再当成选项.
 $ fd "nginx"
 $ fd -e py
 ```
+
+##### `sed`
+
+```bash
+$ sed -n '1000p;1000q' data.jsonl # 只输出文件的第 1000 行，然后立刻退出。
+```
+
+##### `jq`
+
+JSONL 每行是一条独立的 JSON 记录。用 `sed` 抽取指定行进行质检
+
+```bash
+$ sed -n '1000p;1000q' data.jsonl | jq '.' # 查看第 1000 条记录
+$ head -n 5 data.jsonl | jq '.,"========="' # 将条目与条目直接分割
+```
+
+`-n` 关闭默认输出，`1000p` 打印第 1000 行，`1000q` 随即退出，不会继续扫描文件的剩余部分。
 
 ### SSH的使用
 
@@ -216,6 +236,30 @@ $ zip -r package.zip path/to/project/ -x "*/.venv/*" "*/__pycache__/*"
 $ unzip archive.zip # 解压缩
 ```
 
+##### 使用 `curl` 下载文件
+
+```bash
+$ curl -L "https://example.com/report.pdf" -o report.pdf # 跟随重定向，并将文件保存为 report.pdf
+$ curl -L -O "https://example.com/report.pdf" # 跟随重定向，并使用 URL 中的原文件名 report.pdf
+```
+
+- `-L` (`--location`)：自动跟随 HTTP 301、302 等重定向，下载链接会跳转时需要使用。
+- `-o` (`--output`)：使用自己指定的文件名保存；后面必须跟文件名，例如 `-o report.pdf`。
+- `-O` (`--remote-name`)：使用 URL 末尾的原文件名保存，例如 URL 以 `report.pdf` 结尾时保存为 `report.pdf`。
+
+`-o` 和 `-O` 通常二选一。若 URL 末尾没有明确的文件名，例如 `https://example.com/download?id=123`，建议使用 `-o report.pdf`。
+
+##### 硬链接与软连接
+
+| 特性         | 软链接 `ln -s`                             | 硬链接 `ln`              |
+| ------------ | ------------------------------------------ | ------------------------ |
+| 本质         | 类似 Windows “快捷方式” , 可指向不存在目标 | 同一文件数据的另一个名称 |
+| 原文件被删除 | 失效                                       | 仍可正常访问数据         |
+| 跨文件系统   | 可以                                       | 不可以                   |
+| 链接目录     | 可以                                       | 通常不允许               |
+
+### 进程
+
 ##### 终端复用器 `tmux`
 
 需要先用 codex 设置可以用鼠标滚动翻页.
@@ -233,8 +277,24 @@ $ tmux new -s yuanyi_train # 创建 yuanyi_train 会话, 进入一个新的窗�
 $ tmux ls # 睡醒后查看后台所有任务
 yuanyi_train: 1 windows (created Fri Jan 30 01:01:15 2026)
 $ tmux attach -t yuanyi_train # 回到 tmux 界面
+$ tmux att -t yuanyi_train # 同上
 # 在 session 内部输入 exit 即可清除这个 session, 或者
 $ tmux kill-session -t <session_name>
+```
+
+##### 进程查询
+
+```bash
+$ ps aux | rg 'lake'
+yuanyi	1234	....
+....
+$ kill 1234
+```
+
+##### 终止进程
+
+```bash
+$ pkill -TERM -x lean # -x 表示进程名必须完全匹配，不会匹配 clean
 ```
 
 ### Shell 脚本
@@ -334,6 +394,14 @@ EOF
 $ ps aux | grep python # 找出所有进程, 并把结果喂给 grep 去过滤出含有 python 的行
 $ ls -al | head -n 5 # 查看当前目录详细列表, 过滤后只显示前 5 行
 $ cat my.log | grep "error" | wc -l # 统计日志文件里 "error" 出现了多少行
+```
+
+**`xargs`**
+
+``` bash
+$ rg -l sorry ArxivSolutions -0 | xargs -0 rm # -0 = --null：给打印出来的路径后面加一个 NUL 字节, 
+# 用于避免文件名中有空格造成错误
+$ rg --files -z -g '*.lean' ArxivSolutions | xargs -0 wc -l | sort -n | tail -20   # 找最大的文件
 ```
 
 ### 桌面端
